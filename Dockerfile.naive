@@ -1,0 +1,8 @@
+# ---- NAIVE Dockerfile, for size/speed COMPARISON ONLY. Do not deploy. ----
+# Problems: huge base image, copies everything before installing dependencies
+# (no layer caching), pip cache kept, runs as root, uses the dev server.
+FROM python:3.12
+COPY . /project
+WORKDIR /project/app
+RUN pip install -r ../requirements.txt
+CMD ["python", "app.py"]

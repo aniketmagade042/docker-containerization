@@ -1,0 +1,42 @@
+services:
+  web:
+    build: .
+    image: guestbook-web:1.0
+    ports:
+      - "${WEB_PORT:-8000}:8000"        # host:container
+    environment:
+      APP_ENV: ${APP_ENV:-production}
+      SECRET_KEY: ${SECRET_KEY:?Set SECRET_KEY in your .env file}
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+    depends_on:
+      db:
+        condition: service_healthy      # wait until Postgres accepts connections
+    networks:
+      - appnet
+    restart: unless-stopped
+
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - pgdata:/var/lib/postgresql/data   # named volume = data survives container removal
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    networks:
+      - appnet
+    # No "ports:" here on purpose: the database is reachable only by other
+    # containers on appnet, not from your laptop or the internet.
+    restart: unless-stopped
+
+networks:
+  appnet:
+
+volumes:
+  pgdata:
